@@ -8,6 +8,7 @@ import 'package:hotel/domain/models/hotel_model.dart';
 import 'package:hotel/domain/models/room_model.dart';
 import 'package:hotel/providers/booking_provider.dart';
 
+
 class BookingScreen extends StatefulWidget {
   final Hotel hotel;
   final Room room;
@@ -32,9 +33,13 @@ class _HotelBookingScreenState extends State<BookingScreen> {
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
   int _numberOfGuests = 1;
+  
+  // ignore: non_constant_identifier_names
+  get sk_key => null;
 
   @override
   Widget build(BuildContext context) {
+    String userEmail = Provider.of<AuthProvider>(context).user!.email;
     return Scaffold(
       appBar: AppBar(
         title: Text('Book ${widget.hotel.name}'),
@@ -92,22 +97,42 @@ class _HotelBookingScreenState extends State<BookingScreen> {
             ElevatedButton(
               onPressed: _checkInDate != null && _checkOutDate != null
                   ? () async {
-                      //debug all the values
-                      print(context.read<AuthProvider>().user?.email);
-                      final booking = Booking(
-                        hotelName: widget.hotel.name.toString(),
-                        checkInDate: _checkInDate!,
-                        checkOutDate: _checkOutDate!,
-                        numberOfGuests: _numberOfGuests,
-                        totalCost:
-                            widget.room.rate * _numberOfGuests.toDouble(),
-                        user: context.read<AuthProvider>().user!,
-                        room: [widget.hotel.rooms.first],
-                      );
-                      await context.read<BookingProvider>().addBooking(booking);
-                      _showFlashMessage(context, 'Booking successful!');
-                      Navigator.pushReplacementNamed(context, '/home');
+                      num cost = widget.room.rate * _numberOfGuests.toInt();
+                      PayWithPayStack().now(
+                          context: context,
+                          secretKey: sk_key,
+                          customerEmail: userEmail,
+                          reference:
+                              DateTime.now().microsecondsSinceEpoch.toString(),
+                          currency: "KES",
+                          amount: "$cost",
+                          transactionCompleted: () async {
+                            final booking = Booking(
+                              hotelName: widget.hotel.name.toString(),
+                              checkInDate: _checkInDate!,
+                              checkOutDate: _checkOutDate!,
+                              numberOfGuests: _numberOfGuests,
+                              totalCost:
+                                  widget.room.rate * _numberOfGuests.toDouble(),
+                              user: context.read<AuthProvider>().user!,
+                              room: [widget.hotel.rooms.first],
+                            );
+                            await context
+                                .read<BookingProvider>()
+                                .addBooking(booking);
+                            _showFlashMessage(context, 'Booking successful!');
+                            Navigator.pushReplacementNamed(context, '/home');
+                            print("Transaction Successful");
+                          },
+                          transactionNotCompleted: () {
+                            _showFlashMessage(context, 'Transaction aborted!');
+                            print("Transaction Not Successful!");
+                          },
+                          callbackUrl: '');
                     }
+                  //   //debug all the values
+                  //   print(context.read<AuthProvider>().user?.email);
+
                   : null,
               child: const Text('Book Now'),
             ),
@@ -145,4 +170,8 @@ class _HotelBookingScreenState extends State<BookingScreen> {
       ),
     );
   }
+}
+
+class PayWithPayStack {
+  void now({required BuildContext context, required secretKey, required String customerEmail, required String reference, required String currency, required String amount, required Future<Null> Function() transactionCompleted, required Null Function() transactionNotCompleted, required String callbackUrl}) {}
 }

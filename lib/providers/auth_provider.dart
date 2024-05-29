@@ -4,18 +4,22 @@ import 'package:hotel/domain/models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
-  UserModel? _user;
+  late final UserModel _user;
   String? _errorMessage;
   bool _isLoggedIn = false;
 
   UserModel? get user => _user;
   String? get errorMessage => _errorMessage;
-  bool get isLoggedIn => _isLoggedIn; // Expose the login status
+  bool get isLoggedIn => _isLoggedIn;
 
-  Future<void> createUserWithEmailAndPassword(BuildContext context,
-      String email, String password, String displayName) async {
+  Future<void> createUserWithEmailAndPassword(
+      BuildContext context,
+      String email,
+      String password,
+      String displayName,
+      int phoneNumber) async {
     UserModel? createdUser = await _authService.createUserWithEmailAndPassword(
-        context, email, password, displayName);
+        context, email, password, displayName, phoneNumber);
     if (createdUser != null) {
       _user = createdUser;
       _errorMessage = null;
